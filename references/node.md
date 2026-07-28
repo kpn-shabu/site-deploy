@@ -57,9 +57,20 @@ compose.override.yml 把整個專案 bind mount 進容器(`.:/srv/{{SITE}}/curre
 若不處理,host(macOS)的 `node_modules/` 會直接蓋掉容器內的 Linux 版依賴,
 回到跨平台二進位衝突的老問題。因此 override 以 **named volume 掛在
 `src/node_modules`**:mount 優先權讓該目錄與 host 隔離,Linux 依賴留在 volume 內。
+volume 的擁有權由 image 決定:docker 初始化 named volume 時沿用 image 內同路徑
+目錄的 owner,因此模板 Dockerfile 在切 `USER node` 前預建 `node_modules` 並
+chown 給 node——**不可移除這行**,否則 volume 生成 root-owned,
+`npm install` 直接 EACCES(既有 volume 需 `docker volume rm` 重建才會套用)。
+
 配套紀律:
 
-- 依賴一律**在容器內**裝:`docker compose exec app npm install <pkg>`
+- **scaffold 的初始化順序**:骨架先只產原始碼(如
+  `npx create-next-app@latest src --skip-install`),再
+  `docker compose run --rm --no-deps app npm install` 在容器內裝依賴——
+  host(mac arm64)裝的原生二進位與容器不相容,且會被 named volume 蓋住不生效;
+  依賴進 volume,`package-lock.json` 經 bind mount 寫回 host 並 **commit 進 git**
+  (deploy.sh 的 `npm ci` 需要它)。
+- 之後加依賴一律**在容器內**裝:`docker compose exec app npm install <pkg>`
   (寫進 volume,host 的 node_modules 只是 IDE 用的參考,可有可無)。
 - 改了 `package.json` 後容器內重跑 `npm install`;volume 內容疑似壞掉時
   `docker compose down && docker volume rm {{SITE}}_<volume名>` 再 up 重裝。

@@ -62,7 +62,7 @@ disable-model-invocation: true
    | `common/smoke-routes.txt` | `deploy/smoke-routes.txt` |
    | `common/CLAUDE.md.tmpl` | `CLAUDE.md` |
    | `common/README.site.md.tmpl` | `README.md` |
-4. 初始化 `src/`:純 PHP → 建最小 `src/public/index.php`;ci4/laravel → 用容器跑 `composer create-project`(對齊 image 的 PHP 版本);node → `create-next-app` 或使用者指定。app 程式根一律 `src/`,php 系 docroot 一律 `src/public`。
+4. 初始化 `src/`:純 PHP → 建最小 `src/public/index.php`;ci4/laravel → 用容器跑 `composer create-project`(對齊 image 的 PHP 版本);node → 先 `create-next-app --skip-install`(或使用者指定骨架)只產原始碼,再 `docker compose run --rm --no-deps app npm install` **在容器內**裝依賴(host 裝的原生二進位與容器不相容、又會被 named volume 蓋住;`package-lock.json` 會寫回 host,commit 進 git 供 `npm ci` 用,詳見 `references/node.md`)。app 程式根一律 `src/`,php 系 docroot 一律 `src/public`。
 5. 產 `.env`(本機開發用)並引導填值;同時產 `deploy/.env.production`:APP_ENV=production、APP_DEBUG=false、APP_URL=https://網域、**隨機 DB 密碼**(ci4 → CI_ENVIRONMENT=production;node → NODE_ENV=production)。兩檔都在 .gitignore,`deploy/.env.production` 是日後上線唯一的 .env 來源。
 6. 寫 `deploy/state.json`(`scaffolded_at` = 今日、`stack` = 所選 stack,模板值為 null 必須填掉)→ `git init` + 首次 commit。
 

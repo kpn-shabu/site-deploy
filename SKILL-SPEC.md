@@ -211,7 +211,7 @@ site-deploy/
 
 **php image**(templates/php、templates/laravel 共用同款):`php:8.3-fpm-alpine` + nginx 同一容器;entrypoint `php-fpm -D` 後 `exec nginx -g 'daemon off;'`;內建 `/usr/local/bin/reload-php`(對 php-fpm master 送 USR2);nginx fastcgi 一律 `SCRIPT_FILENAME $realpath_root$fastcgi_script_name`、`DOCUMENT_ROOT $realpath_root`;`location = /healthz { return 200; }`;compose healthcheck 打 `http://localhost/healthz`。OPcache:image 內 `validate_timestamps=0`,本機由 override 掛 `./docker/php.dev.ini`(`validate_timestamps=1`)進 conf.d 覆蓋。擴充至少含 `pdo_pgsql`。
 
-**node image**:`node:22-slim`;workdir `/srv/{{SITE}}/current/src`;prod command `npm run start`(port 3000);本機 override command `npm run dev`,並用 named volume 蓋住 `src/node_modules`(避免 host/容器二進位衝突)。
+**node image**:`node:22-slim`;workdir `/srv/{{SITE}}/current/src`;prod command `npm run start`(port 3000);本機 override command `npm run dev`,並用 named volume 蓋住 `src/node_modules`(避免 host/容器二進位衝突)。**Dockerfile 必須在切 `USER node` 前於 workdir 預建 `node_modules` 並 chown node**——named volume 初始化沿用 image 內同路徑的 owner,image 內沒有該目錄時 volume 會生成 root-owned,npm install 必 EACCES(2026-07-28 bug 回報修正)。
 
 **Caddyfile**:`{{DOMAIN}}` 反代 `app:80`(php 系)/`app:3000`(node 系);`www.{{DOMAIN}}` 301 到 apex。
 
