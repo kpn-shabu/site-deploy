@@ -144,6 +144,8 @@ rsync -az \
   --exclude /.env \
   --exclude /.git \
   --exclude /deploy/.env.production \
+  --exclude /.ssh \
+  --exclude '*.pem' \
   --exclude /data \
   --exclude /src/vendor \
   --exclude /src/node_modules \

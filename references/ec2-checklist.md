@@ -28,24 +28,25 @@
       沒有 Elastic IP,stop/start 後公網 IP 會變,DNS A 記錄跟著失效。
 - [ ] 記下這個 IP:Phase 3(dns-gate)設 A 記錄用的就是它。
 
-## 本機 ~/.ssh/config 加 host alias
+## 交付兩樣東西(唯一要交給部署流程的)
 
-在 `~/.ssh/config` 加一段(`acme` 換成你的站名、IP 與 pem 檔名換成實際值):
+上線階段 skill 會向你要這兩樣,備妥即可:
 
-```
-Host acme-prod
-    HostName <Elastic IP>
-    User ubuntu
-    IdentityFile ~/.ssh/acme-prod.pem
-```
+- [ ] **連線資訊 `user@ip`**(如 `ubuntu@52.1.2.3`;user 通常是 ubuntu,ip 是上面的 Elastic IP)
+- [ ] **金鑰檔 `.pem` 的路徑**(如 `~/.ssh/acme-prod.pem`,或專案內 `.ssh/xxx.pem`)
 
-- [ ] 這個 alias(如 `acme-prod`)就是之後 `deploy/deploy.conf` 裡的 `SSH_HOST`。
+skill 收到後會:檢查/修正 pem 權限(600)→ 徵得同意後在 `~/.ssh/config` 產生
+`Host <站名>` 區塊(HostName/User/IdentityFile)→ `SSH_HOST=<站名>` 寫入
+`deploy/deploy.conf` → 測試連線。alias 不用人工先建。
+
+注意:pem 若放在專案目錄內,`.gitignore` 已排除 `.ssh/` 與 `*.pem`,
+部署 rsync 也不會把它傳上主機——但仍建議放 `~/.ssh/` 最保險。
 
 ## 驗收(唯一完成條件)
 
-- [ ] 本機執行 `ssh <alias>`(如 `ssh acme-prod`)——**不加任何額外參數**
-      就能登入到 ubuntu@ 提示符,即完成。
+- [ ] skill 產生 alias 後,本機 `ssh <站名>` **不加任何額外參數**就能登入
+      到 ubuntu@ 提示符,即完成。
       之後的一切(裝 docker、swap、目錄、.env…)交給 provision.sh,人不用再上去動手。
 
-連不上的常見原因:SG 的 22 限了來源但你的 IP 變了;pem 權限不是 400;
-`User` 不是 ubuntu;Elastic IP 還沒 associate。
+連不上的常見原因:SG 的 22 限了來源但你的 IP 變了;pem 權限太開放(需 600/400);
+user 不是 ubuntu;Elastic IP 還沒 associate。

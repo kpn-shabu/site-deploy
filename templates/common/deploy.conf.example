@@ -10,7 +10,8 @@ SITE={{SITE}}
 # 網域(apex,不含 www;www 由 Caddy 301 轉址到 apex)。
 DOMAIN={{DOMAIN}}
 
-# ~/.ssh/config 中的 host alias(人工先設好,provision 從「SSH 連得上」開始)。
+# ~/.ssh/config 中的 host alias。上線階段由 skill 向使用者索取 user@ip 與 .pem 路徑後
+# 產生 Host <站名> 區塊並填入此值(開發期留空)。
 SSH_HOST=
 
 # stack 類型,四選一:php | ci4 | laravel | node

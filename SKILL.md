@@ -75,7 +75,15 @@ disable-model-invocation: true
 
 ## Phase 2 — provision(首次,冪等可重跑)
 
-前置:人已依 `references/ec2-checklist.md` 開好 EC2(Ubuntu 24.04、SG 只開 22/80/443、SSH 金鑰),本機 `~/.ssh/config` 有 host alias。
+前置:人已依 `references/ec2-checklist.md` 開好 EC2(Ubuntu 24.04、SG 只開 22/80/443、SSH 金鑰)。
+
+**SSH 連線關卡(正式上線前必做,不得假設已存在)**:向使用者索取兩樣東西——
+1. 連線資訊 **`user@ip`**(如 `ubuntu@52.1.2.3`)
+2. **`.pem` 金鑰檔路徑**(如 `~/.ssh/acme-prod.pem` 或專案內 `.ssh/xxx.pem`)
+
+拿到後:`chmod 600` 修正 pem 權限 → **徵得使用者同意**後在 `~/.ssh/config` 追加 `Host <站名>` 區塊(HostName=ip、User、IdentityFile=pem 絕對路徑;已有同名區塊則停下確認,不靜默覆蓋)→ `SSH_HOST=<站名>` 寫入 `deploy/deploy.conf` 並 commit → `ssh <站名> exit` 驗證連得上才續行。
+pem 在專案目錄內時,確認 `.gitignore` 的 `.ssh/`、`*.pem` 生效(rsync 亦已排除,金鑰絕不上遠端)。
+
 執行 `scripts/provision.sh`:裝 docker、建 `/srv/<site>` 結構、2G swap、上傳 `.env.production` → `shared/.env`(已存在不覆蓋)、chown uploads(php 系 82 = alpine 的 www-data、node 1000)、安裝 systemd units(如有)。
 完成 → 寫 `provisioned_at` + commit。
 
@@ -118,6 +126,7 @@ Caddy 對 ACME 失敗會自動退避重試,DNS 慢生效只是暫時拿不到憑
 
 - 觸發後先報告現況與計畫,**經使用者同意才開跑**。
 - scaffold 必須開口要專案名稱並複誦確認;名稱凍結後不得擅改。
+- 正式上線前必須向使用者索取 `user@ip` 與 `.pem` 路徑;改動 `~/.ssh/config` 前徵得同意;pem 絕不進 git、絕不 rsync 上遠端。
 - 絕不在遠端直接改 `src/`;所有變更一律本機 → 部署。部署失敗以回滾收尾,不在遠端現場修。
 - `.env` 不進 git;不覆蓋遠端既有 `shared/.env`,除非使用者明確指示。
 - 破壞性操作(還原/重建 DB、降版、刪 volume、改名)一律先向使用者確認。

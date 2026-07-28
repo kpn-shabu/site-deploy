@@ -1,6 +1,8 @@
-# 環境設定 — 絕不進 git
+# 環境設定與金鑰 — 絕不進 git
 .env
 deploy/.env.production
+/.ssh/
+*.pem
 
 # 依賴目錄 — 由 composer install / npm ci 產生
 vendor/

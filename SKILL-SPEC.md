@@ -143,7 +143,7 @@ site-deploy/
 兩者未過,skill 拒絕進入 deploy。
 
 ### Phase 2 — provision(首次主機建置,冪等)
-前置:人依 `ec2-checklist.md` 開好機(Ubuntu 24.04、SG 只開 22/80/443、SSH 金鑰),並在本機 `~/.ssh/config` 建好 host alias。
+前置:人依 `ec2-checklist.md` 開好機(Ubuntu 24.04、SG 只開 22/80/443、SSH 金鑰)。SSH 連線關卡(2026-07-28 補充定案):**skill 於正式上線前向使用者索取 `user@ip` 與 `.pem` 金鑰檔路徑**,經同意後產生 `~/.ssh/config` 的 `Host <站名>` 區塊(chmod 600 pem、已有同名區塊須確認)、`SSH_HOST=<站名>` 寫入 deploy.conf、`ssh <站名> exit` 驗證通過才續行;pem 不進 git(gitignore 排除 `.ssh/`、`*.pem`)、不隨 rsync 上遠端(deploy.sh 排除)。
 步驟:apt 安裝 docker-ce + compose plugin → 建 `/srv/<site>` 目錄結構與權限 → 加 2G swap(Node 站必須;PHP 站也加,保險)→ scp `deploy/.env.production` 到 `shared/.env`(遠端已存在則不覆蓋)→ 安裝該站需要的 systemd units(scheduler 等)。
 
 ### Phase 3 — dns-gate(人工介入點)
