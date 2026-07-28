@@ -1,0 +1,5 @@
+# deploy/smoke-routes.txt — smoke-test.sh 逐行檢查的路由清單
+# 格式:每行 `PATH [EXPECTED_STATUS]`,EXPECTED_STATUS 省略時預設 200;`#` 開頭為註解。
+# local 模式打 http://localhost:$APP_PORT_LOCAL,remote 模式打 https://$DOMAIN。
+# 開發期隨功能演進維護本清單;維護期固定,部署前後皆跑。
+/ 200

@@ -1,0 +1,33 @@
+# 基底 compose:本機與遠端共用。
+# 不使用變數插值、不含 env_file(遠端 release 目錄沒有 .env 可供插值;
+# env 一律由 compose.override.yml / compose.prod.yml 以 env_file 掛入)。
+# 頂層 name 寫死:任何目錄下跑 compose 都對到同一組 volume / 網路 / 容器。
+name: "{{SITE}}"
+
+services:
+  app:
+    build: ./docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    image: postgres:16-alpine
+    # $$ 為 compose 跳脫(非變數插值):於容器內執行時才展開,
+    # 值來自 override / prod 掛入的 env_file。
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

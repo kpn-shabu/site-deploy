@@ -1,0 +1,28 @@
+# deploy/deploy.conf — site-deploy 腳本共用參數
+# 所有 scripts(deploy.sh / rollback.sh / provision.sh / smoke-test.sh)
+# 開頭一律 `source deploy/deploy.conf`,因此本檔必須是合法的 bash 語法。
+# scaffold 時由 LLM 依使用者確認的專案名稱與 stack 填妥。
+
+# 站名:一切資源的命名種子(compose 專案名、volume、/srv/<site>、systemd unit、git tag)。
+# scaffold 後凍結,不得擅改。
+SITE={{SITE}}
+
+# 網域(apex,不含 www;www 由 Caddy 301 轉址到 apex)。
+DOMAIN={{DOMAIN}}
+
+# ~/.ssh/config 中的 host alias(人工先設好,provision 從「SSH 連得上」開始)。
+SSH_HOST=
+
+# stack 類型,四選一:php | ci4 | laravel | node
+STACK=
+
+# 本機開發 port(override 直開):php / ci4 / laravel 建議 8080;node 建議 3000。
+APP_PORT_LOCAL=
+
+# 遠端保留的 releases 數量,部署成功後清掉更舊的。
+KEEP_RELEASES=5
+
+# 容器需可寫、且留在 release 內的目錄(空白分隔,相對 release 根)。
+# deploy.sh 於切 symlink 前對這些目錄 chown www-data(alpine 版 php image 內為 uid 82)。
+# 建議值:ci4="src/writable";laravel="src/bootstrap/cache src/storage";php / node 留空。
+WRITABLE_DIRS=

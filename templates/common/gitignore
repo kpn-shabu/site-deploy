@@ -1,0 +1,17 @@
+# 環境設定 — 絕不進 git
+.env
+deploy/.env.production
+
+# 依賴目錄 — 由 composer install / npm ci 產生
+vendor/
+node_modules/
+
+# build 產物 — 部署時於遠端一次性容器內重建
+.next/
+dist/
+
+# 本機開發資料 — override 掛載的 uploads 等
+/data/
+
+# macOS
+.DS_Store

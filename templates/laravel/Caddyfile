@@ -1,0 +1,9 @@
+# {{SITE}} — Caddy 設定(遠端最外層,SSL 憑證自動簽發與續約)
+{{DOMAIN}} {
+	reverse_proxy app:80
+}
+
+# www 一律 301 轉址到 apex
+www.{{DOMAIN}} {
+	redir https://{{DOMAIN}}{uri} 301
+}

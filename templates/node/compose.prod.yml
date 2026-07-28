@@ -1,0 +1,32 @@
+# 遠端 prod override:一律以 docker compose -f compose.yml -f compose.prod.yml 執行。
+# app 不對外開 port,只由 caddy 反代;Let's Encrypt 憑證存 named volume(caddy_data)。
+services:
+  app:
+    restart: unless-stopped
+    env_file:
+      - "/srv/{{SITE}}/shared/.env"
+    volumes:
+      # 容器內外同路徑掛整層 /srv/{{SITE}}(硬性規定):
+      # bind mount 在容器啟動時解析 symlink,掛整層才能讓切 current 即時生效;
+      # 也是部署以 run --rm -w <host 路徑> 對上容器內路徑的先決條件
+      - "/srv/{{SITE}}:/srv/{{SITE}}"
+
+  postgres:
+    restart: unless-stopped
+    env_file:
+      - "/srv/{{SITE}}/shared/.env"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # ./deploy/Caddyfile 即 current 下的相對路徑(compose 於 /srv/{{SITE}}/current 執行)
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile
+      # ACME 憑證與狀態,務必持久化
+      - caddy_data:/data
+
+volumes:
+  caddy_data:

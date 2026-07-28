@@ -1,0 +1,34 @@
+# 遠端 production override:固定以
+#   docker compose -f compose.yml -f compose.prod.yml ...
+# 執行。app 不對外開 port,由 caddy 反代;.env 只存在於 shared/。
+services:
+  app:
+    volumes:
+      # 掛整層 /srv/{{SITE}},容器內外同路徑(硬性):
+      # 這是 current symlink 在容器內解析得到、以及部署期
+      # run --rm -w <release 路徑> 能對上路徑的先決條件。
+      - "/srv/{{SITE}}:/srv/{{SITE}}"
+    env_file:
+      - "/srv/{{SITE}}/shared/.env"
+    restart: unless-stopped
+
+  postgres:
+    env_file:
+      - "/srv/{{SITE}}/shared/.env"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # 相對路徑 = current 下的 deploy/Caddyfile;憑證存 named volume,換版不掉憑證
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy_data:

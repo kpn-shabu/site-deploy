@@ -1,0 +1,9 @@
+# Caddy 管最外層 SSL(Let's Encrypt 自動簽發與續約),反代到同 compose 網路的 app 容器。
+{{DOMAIN}} {
+	reverse_proxy app:80
+}
+
+# www 一律 301 轉址到 apex
+www.{{DOMAIN}} {
+	redir https://{{DOMAIN}}{uri} 301
+}

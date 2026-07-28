@@ -1,0 +1,42 @@
+# 基底 compose:本機與遠端共用。
+# 頂層 name 寫死站名:任何目錄(含遠端各 release 目錄)下跑 compose
+# 都對到同一組 named volume / 網路 / 容器;勿改,改了等於換專案(pgdata 會被遺棄)。
+# 本檔不使用變數插值(遠端 release 目錄沒有 .env 可供插值);
+# env 一律由 compose.override.yml(本機)/ compose.prod.yml(遠端)以 env_file 提供。
+name: "{{SITE}}"
+
+services:
+  app:
+    build: ./docker
+    # 生產指令;本機由 override 覆蓋為 npm run dev
+    command: npm run start
+    # 只 expose 不 publish:本機由 override 直開 port,遠端由 caddy 反代
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # 用 node 原生 fetch 打 http://localhost:3000/;
+      # 注意:Next.js 專案必須有能回 200 的 / 路由(或將此處改打自訂的 healthcheck 路由)
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    # major 版本 pin 死;升級屬另案(dump/restore),不可直接換 tag
+    image: postgres:16-alpine
+    healthcheck:
+      # $$ 為 compose 的跳脫寫法,實際於容器內展開 $POSTGRES_USER / $POSTGRES_DB(來自 env_file)
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

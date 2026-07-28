@@ -1,0 +1,10 @@
+# {{SITE}} — Laravel scheduler(由 {{SITE}}-scheduler.timer 每分鐘觸發)
+[Unit]
+Description={{SITE}} Laravel scheduler (php artisan schedule:run)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/{{SITE}}/current
+ExecStart=/usr/bin/docker compose -f compose.yml -f compose.prod.yml exec -T app php artisan schedule:run

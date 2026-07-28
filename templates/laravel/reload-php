@@ -1,0 +1,9 @@
+#!/bin/sh
+# {{SITE}} — 平滑 reload php-fpm(換版切 symlink 後必要步驟,不可省略):
+# 對 php-fpm master process 送 USR2,重生 worker 以清空 OPcache 與 realpath cache
+set -e
+
+# pgrep -o 取最早啟動的 php-fpm,即 master process
+MASTER_PID="$(pgrep -o php-fpm)"
+kill -USR2 "$MASTER_PID"
+echo "php-fpm reloaded (USR2 -> pid ${MASTER_PID})"

@@ -1,0 +1,14 @@
+#!/bin/sh
+# reload-php:對 php-fpm master process 送 USR2,優雅 reload 全部 worker
+# (同時清空 OPcache 與 realpath cache)。
+# 部署切換 current symlink 後【必須】執行;否則 realpath cache(預設 TTL 120s,
+# 不受 OPcache 設定控制)會讓部分請求在最長兩分鐘內混跑新舊 release。
+set -e
+
+PID="$(pgrep -o -f 'php-fpm: master' || true)"
+if [ -z "$PID" ]; then
+    echo "reload-php: 找不到 php-fpm master process" >&2
+    exit 1
+fi
+kill -USR2 "$PID"
+echo "reload-php: 已對 php-fpm master (PID $PID) 送出 USR2"

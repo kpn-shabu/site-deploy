@@ -1,0 +1,54 @@
+# {{SITE}} — 遠端生產覆蓋
+# 用法固定:docker compose -f compose.yml -f compose.prod.yml ...
+# app 不對外開 port;對外只有 caddy(80/443,SSL 由 Caddy 自動簽發續約)。
+services:
+  app:
+    restart: unless-stopped
+    env_file:
+      - /srv/{{SITE}}/shared/.env
+    volumes:
+      # 硬性:容器內外相同路徑掛整層 /srv/{{SITE}},
+      # current symlink(相對目標)才能在容器內解析,
+      # 也是部署指令 `run --rm -w <host路徑>` 能對上路徑的先決條件
+      - "/srv/{{SITE}}:/srv/{{SITE}}"
+
+  postgres:
+    restart: unless-stopped
+    env_file:
+      - /srv/{{SITE}}/shared/.env
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # ./deploy/Caddyfile 即 current 下的相對路徑(從 /srv/{{SITE}}/current 執行 compose)
+      - "./deploy/Caddyfile:/etc/caddy/Caddyfile"
+      # 憑證與 ACME 狀態存 named volume,換 release 不受影響
+      - "caddy_data:/data"
+
+  # ── queue worker(預留,預設關閉)──────────────────────────────
+  # 何時打開:站台開始使用 Laravel queue(QUEUE_CONNECTION 改為 database 等
+  # 非 sync 值)且需要背景常駐 worker 時,取消以下註解後重新
+  # `docker compose -f compose.yml -f compose.prod.yml up -d`。
+  # image 直接沿用 app service build 出的同一顆 image(compose 命名為 {{SITE}}-app)。
+  # 注意:換版部署後 worker 需重啟才會載入新程式碼(php artisan queue:restart
+  # 或直接 restart 此 service)。
+  #
+  # worker:
+  #   image: "{{SITE}}-app"
+  #   restart: unless-stopped
+  #   working_dir: /srv/{{SITE}}/current/src
+  #   command: php artisan queue:work
+  #   env_file:
+  #     - /srv/{{SITE}}/shared/.env
+  #   volumes:
+  #     - "/srv/{{SITE}}:/srv/{{SITE}}"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  caddy_data:

@@ -1,0 +1,21 @@
+# 本機開發 override(docker compose 自動載入;遠端不使用此檔)。
+# 容器內路徑刻意與遠端完全一致:/srv/{{SITE}}/current、/srv/{{SITE}}/shared/uploads。
+services:
+  app:
+    ports:
+      - "8080:80"
+    volumes:
+      # 專案根掛為 current(遠端由 symlink 扮演同一角色)
+      - ".:/srv/{{SITE}}/current"
+      # 本機模擬 shared/uploads(data/ 進 .gitignore,不進版控)
+      - "./data/uploads:/srv/{{SITE}}/shared/uploads"
+      # 開發用 OPcache 設定(validate_timestamps=1)蓋過 image 內生產值
+      - "./docker/php.dev.ini:/usr/local/etc/php/conf.d/php.dev.ini"
+    env_file:
+      - ./.env
+
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+    env_file:
+      - ./.env

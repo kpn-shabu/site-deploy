@@ -1,0 +1,13 @@
+# {{SITE}} — Laravel scheduler timer(每分鐘整點觸發)
+# AccuracySec=1s 必設:systemd 預設 1min 精度,偏移抽到分鐘邊界
+# 會讓 dailyAt / hourlyAt 類任務靜默漏跑。
+# Persistent 不設(維持預設):schedule:run 錯過的分鐘不需補跑。
+[Unit]
+Description={{SITE}} Laravel scheduler timer
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

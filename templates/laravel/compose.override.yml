@@ -1,0 +1,21 @@
+# {{SITE}} — 本機開發覆蓋(docker compose 自動載入;遠端不使用此檔)
+# 本機直開 port、不跑 caddy、OPcache 改為每請求驗證。
+services:
+  app:
+    ports:
+      - "8080:80"
+    env_file:
+      - ./.env
+    volumes:
+      # 專案根即 current → 容器內路徑與遠端完全一致
+      - ".:/srv/{{SITE}}/current"
+      # 本機上傳目錄(data/ 在 .gitignore)
+      - "./data/uploads:/srv/{{SITE}}/shared/uploads"
+      # 開發用 OPcache 覆蓋(validate_timestamps=1),後載蓋過 image 內 site.ini
+      - "./docker/php.dev.ini:/usr/local/etc/php/conf.d/zz-dev.ini"
+
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+    env_file:
+      - ./.env

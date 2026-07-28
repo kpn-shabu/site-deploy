@@ -1,0 +1,9 @@
+# {{SITE}} — 專案紀律
+
+本專案由 **site-deploy SOP** 管理(skill:`~/.claude/skills/site-deploy/`)。
+
+- 部署、provision、回滾一律由使用者輸入 `/site-deploy` 執行;不得以其他方式代行。
+- **不得直接操作遠端主機**:不 ssh 上去改 `src/`、不在遠端現場修;所有變更一律本機 → 部署。
+- `.env` 與 `deploy/.env.production` 不進 git、不外流(不貼進對話、不寫入任何會被提交或上傳的檔案)。
+- 生命週期以 `deploy/state.json` 為準:`first_deployed_at` 為 null = 開發期,有值 = 維護期;維護期改動完成後**詢問**是否部署,不自動部署。
+- 破壞性操作(還原/重建 DB、降版、刪 volume、改名)一律先向使用者確認。
