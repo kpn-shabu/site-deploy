@@ -9,7 +9,7 @@ Claude Code skill:客戶網站從本機 Docker 開發到 EC2 上線與維運的�
 ## 安裝
 
 ```bash
-git clone <本 repo 的 GitHub URL> ~/.claude/skills/site-deploy
+git clone https://github.com/kpn-shabu/site-deploy.git ~/.claude/skills/site-deploy
 ```
 
 ## 使用
