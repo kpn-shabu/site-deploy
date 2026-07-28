@@ -3,6 +3,8 @@
 services:
   app:
     ports:
+      # 本機開發 port:scaffold 時先確認未被其他專案佔用(lsof -iTCP:<port> -sTCP:LISTEN),
+      # 多專案並行請改成空閒 port,並同步更新 deploy/deploy.conf 的 APP_PORT_LOCAL
       - "8080:80"
     volumes:
       # 專案根掛為 current(遠端由 symlink 扮演同一角色)
@@ -15,7 +17,9 @@ services:
       - ./.env
 
   postgres:
-    ports:
-      - "127.0.0.1:5432:5432"
+    # app 走 docker 網路連 DB,host 不需開 port。
+    # 需要用本機 GUI 工具直連 DB 才取消註解;多專案並行時 5432 會互撞,請改用空閒 port。
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     env_file:
       - ./.env

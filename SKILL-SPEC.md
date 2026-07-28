@@ -203,7 +203,7 @@ site-deploy/
 - service 名固定:`app`、`postgres`、`caddy`(caddy 僅 compose.prod.yml);volume 固定:`pgdata`、`caddy_data`;頂層 `name: {{SITE}}`。
 - 基底 `compose.yml` **不使用變數插值**(遠端 release 目錄沒有 .env 可供插值);env 一律 `env_file`:override 用 `./.env`,prod 用 `/srv/{{SITE}}/shared/.env`,app 與 postgres 都掛。
 - postgres:`postgres:16-alpine`,healthcheck `pg_isready`,volume `pgdata:/var/lib/postgresql/data`。
-- ports:本機 php `8080:80`、node `3000:3000`、postgres `127.0.0.1:5432:5432`;prod 只有 caddy 開 `80:80`、`443:443`。
+- ports:本機 php 預設 `8080:80`、node 預設 `3000:3000`——scaffold 時須確認 port 空閒,被佔用就換,並與 deploy.conf 的 `APP_PORT_LOCAL` 同步(開發機多專案並行是常態,2026-07-28 冒煙測試實際撞到);postgres 預設**不對 host 開 port**(app 走 docker 網路,GUI 直連才解開 override 註解的 `127.0.0.1:5432:5432`);prod 只有 caddy 開 `80:80`、`443:443`。
 - prod 掛載:`/srv/{{SITE}}:/srv/{{SITE}}`(容器內外同路徑,硬性);caddy 另掛 `./deploy/Caddyfile:/etc/caddy/Caddyfile`(即 current 下的相對路徑)與 `caddy_data:/data`。
 - 本機 override 掛載:`.:/srv/{{SITE}}/current`、`./data/uploads:/srv/{{SITE}}/shared/uploads`(`data/` gitignored)→ **容器內路徑本機與遠端完全一致**。
 

@@ -47,6 +47,7 @@ disable-model-invocation: true
 1. **向使用者要求專案名稱,不得自行推斷**(不從資料夾名、網域、對話猜)。驗證 `^[a-z][a-z0-9-]*$`、≤20 字元,複誦確認。此名稱是一切資源的命名種子(compose 專案名/volume/遠端目錄/systemd unit/git tag),**scaffold 後凍結**;改名 = named volume 遺棄(資料庫像消失),屬另案資料搬遷,需明確確認。
 2. 問網域、stack(php|ci4|laravel|node)。
 3. 複製 `templates/<stack>/`(ci4 用 php 目錄)與 `templates/common/` 到專案,全域替換 `{{SITE}}`、`{{DOMAIN}}`,並依下表放置;填 `deploy/deploy.conf`(含 stack 對應的 `WRITABLE_DIRS`、`APP_PORT_LOCAL`)。
+   **本機 port 檢查**:預設 port(php 系 8080、node 3000)先用 `lsof -nP -iTCP:<port> -sTCP:LISTEN` 確認未被其他專案佔用;已佔用就換一個空閒 port,`compose.override.yml` 的 ports 與 `deploy.conf` 的 `APP_PORT_LOCAL` **必須同步改**。postgres 預設不對 host 開 port(app 走 docker 網路),要用 GUI 直連 DB 才解開 override 內的註解。
 
    | 模板檔案 | 放到專案 |
    |---|---|
