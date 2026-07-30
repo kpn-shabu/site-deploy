@@ -197,7 +197,7 @@ site-deploy/
 
 **佔位符**:模板中僅用 `{{SITE}}`、`{{DOMAIN}}` 兩個佔位符,scaffold 時由 LLM 全域替換;其餘參數一律進 `deploy/deploy.conf`。
 
-**模板 → 專案的對應**:`templates/<stack>/Dockerfile|nginx.conf|php.ini|php.dev.ini|entrypoint.sh|reload-php` → 專案 `docker/`;`templates/<stack>/compose*.yml` → 專案根;`templates/<stack>/Caddyfile` → `deploy/`;`templates/laravel/systemd/*` → `deploy/systemd/`;`templates/common/*` → 對應位置(`.gitignore`、`deploy/deploy.conf`、`deploy/state.json`、`deploy/smoke-routes.txt`、`CLAUDE.md`、`README.md`)。`.env.example` 放各 stack 目錄(php 版含 CI4 註解區塊)。每個 stack 目錄**自成一套完整檔案**,scaffold 只複製一個目錄,不做跨目錄組合。
+**模板 → 專案的對應**:`templates/<stack>/Dockerfile|nginx.conf|php.ini|php.dev.ini|entrypoint.sh|reload-php` → 專案 `docker/`;`templates/<stack>/compose*.yml` → 專案根;`templates/<stack>/Caddyfile` → `deploy/`;`templates/laravel/systemd/*` → `deploy/systemd/`;`templates/common/*` → 對應位置(`.gitignore`、`deploy/deploy.conf`、`deploy/state.json`、`deploy/smoke-routes.txt`、`CLAUDE.md`、`README.md`)。`.env.example` 放各 stack 目錄(php 版含 CI4 註解區塊)。每個 stack 目錄**自成一套完整檔案**,scaffold 只複製一個目錄,不做跨目錄組合;因此 `templates/php/` 與 `templates/laravel/` 是各自獨立實作(共享契約、細節不同,分歧清單見本節「php image」)。
 
 **compose 約定**:
 - service 名固定:`app`、`postgres`、`caddy`(caddy 僅 compose.prod.yml);volume 固定:`pgdata`、`caddy_data`;頂層 `name: {{SITE}}`。
@@ -209,7 +209,19 @@ site-deploy/
 
 **路徑約定**:app 程式根一律是 `src/`(composer.json、package.json、artisan、spark 都在 src/ 下);php 系 docroot 一律 `src/public`(純 PHP 也是,scaffold 建立 `src/public/index.php`);nginx root 寫死 `/srv/{{SITE}}/current/src/public`。上傳目錄容器內一律 `/srv/{{SITE}}/shared/uploads`。
 
-**php image**(templates/php、templates/laravel 共用同款):`php:8.3-fpm-alpine` + nginx 同一容器;entrypoint `php-fpm -D` 後 `exec nginx -g 'daemon off;'`;內建 `/usr/local/bin/reload-php`(對 php-fpm master 送 USR2);nginx fastcgi 一律 `SCRIPT_FILENAME $realpath_root$fastcgi_script_name`、`DOCUMENT_ROOT $realpath_root`;`location = /healthz { return 200; }`;compose healthcheck 打 `http://localhost/healthz`。OPcache:image 內 `validate_timestamps=0`,本機由 override 掛 `./docker/php.dev.ini`(`validate_timestamps=1`)進 conf.d 覆蓋。擴充至少含 `pdo_pgsql`。
+**php image**(`templates/php/` 與 `templates/laravel/` **各自獨立實作**,共享以下契約但**並非逐字相同**,見後段「已知分歧」):
+`php:8.3-fpm-alpine` + nginx 同一容器;啟動流程 `php-fpm -D` 後 `exec nginx -g 'daemon off;'`,且部署的一次性容器 `run --rm app <cmd>` 必須真的執行 `<cmd>`(用 `ENTRYPOINT` 就得在腳本內透傳參數,用 `CMD` 則由 run 整個覆蓋——兩種寫法都可,但**不得讓 `<cmd>` 被吞掉導致容器卡在 nginx 前景**);內建 `/usr/local/bin/reload-php`(對 php-fpm master 送 USR2);nginx fastcgi 一律 `SCRIPT_FILENAME $realpath_root$fastcgi_script_name`、`DOCUMENT_ROOT $realpath_root`;`location = /healthz { return 200; }`;compose healthcheck 打 `http://localhost/healthz`(用 image 內確實存在的 client——`curl` 需自行 `apk add`,否則用 alpine 內建的 `wget`)。OPcache:生產設定 `validate_timestamps=0`,本機由 override 把 `./docker/php.dev.ini`(`validate_timestamps=1`)掛進 conf.d,**掛入檔名必須在生產設定之後載入**才會生效(conf.d 依檔名排序)。擴充至少含 `pdo_pgsql`。
+
+**已知分歧(2026-07-29 實測:兩目錄所有同名檔案皆有差異;屬各 stack 自主選擇,不是 bug,也不要用覆蓋的方式「統一」)**:
+- nginx 執行身分 `user www-data`(php)vs `user nginx`(laravel),連帶 pid 路徑 `/run/nginx.pid` vs `/run/nginx/nginx.pid`。兩者皆成立:`WRITABLE_DIRS` chown 給 `www-data` 是給 php-fpm 寫的,nginx 只讀。
+- 生產 php 設定的落點:`php.ini`(php,主設定檔)vs `conf.d/site.ini`(laravel);對應的 dev 掛入檔名 `conf.d/php.dev.ini` vs `conf.d/zz-dev.ini`(皆滿足「後載覆蓋」)。
+- Dockerfile 啟動宣告 `ENTRYPOINT`(php,腳本透傳參數)vs `CMD`(laravel);healthcheck client `curl`(php 額外 `apk add curl`)vs `wget`(laravel)。
+- 套件與擴充:php 版多裝 `pgsql`(procedural API)、laravel 版多裝 `git`/`unzip`(composer 用)。
+- 上傳與請求體上限:`20M`(php)vs `64M`(laravel),`client_max_body_size` 與 `upload_max_filesize`/`post_max_size` 於各自模板內部一致即可。
+- caddy image tag `caddy:2`(php)vs `caddy:2-alpine`(laravel)。
+- laravel 的 `compose.prod.yml` 另附**全註解的 `worker` service**(queue worker,預設關閉)。
+
+動到上列**契約**項目時兩份模板都要改;動到**分歧**項目時只改該 stack。
 
 **node image**:`node:22-slim`;workdir `/srv/{{SITE}}/current/src`;prod command `npm run start`(port 3000);本機 override command `npm run dev`,並用 named volume 蓋住 `src/node_modules`(避免 host/容器二進位衝突)。**Dockerfile 必須在切 `USER node` 前於 workdir 預建 `node_modules` 並 chown node**——named volume 初始化沿用 image 內同路徑的 owner,image 內沒有該目錄時 volume 會生成 root-owned,npm install 必 EACCES(2026-07-28 bug 回報修正)。
 

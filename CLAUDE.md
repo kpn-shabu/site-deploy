@@ -69,8 +69,8 @@ git 身分為 repo-local `ShabuWu <shabu@kpnweb.com>`;remote 走 HTTPS + `creden
 - 佔位符**只有** `{{SITE}}` 與 `{{DOMAIN}}`,scaffold 時全域替換;其他參數一律進 `deploy/deploy.conf`。
 - 每個 stack 目錄**自成一套完整檔案**,scaffold 只複製一個目錄,不做跨目錄組合(`ci4` 用 `templates/php/`)。
 - 因此 `templates/php/` 與 `templates/laravel/` 是**各自獨立實作**,共享 SPEC §8 的契約但**並非逐字相同**
-  (實測全部同名檔案都有差異:nginx 的 `user` 一為 `www-data` 一為 `nginx`、pid 路徑、`client_max_body_size`、
-  Dockerfile 的擴充與套件清單都不同)。動到共用不變量時**兩邊都要改**,但不要直接把一邊覆蓋過去。
+  (實測全部同名檔案都有差異)。改動前先看 SPEC §8「php image」段:**契約**項目兩份都要改,
+  **已知分歧**項目只改該 stack,不要用覆蓋的方式「統一」。
 
 ### 部署模型(讀腳本前先有這張圖)
 
